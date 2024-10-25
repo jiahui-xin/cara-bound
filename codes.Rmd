@@ -1,0 +1,391 @@
+---
+title: "codes"
+output: html_document
+date: "2024-10-17"
+---
+# dependency
+```{r}
+rm(list=c())
+Rcpp::sourceCpp("base_randomization.cpp")
+source("simulation.R")
+library(parallel)
+library(Rcpp)
+library(RcppArmadillo)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(patchwork)
+library(latex2exp)
+```
+
+# Main Text
+
+## Table 1
+
+```{r}
+true_tau=true_values(model2,"RAR")[1]
+true_bound=true_values(model2,"RAR")[2]
+n=5e2
+repli_num=1e4
+extract2 (experiment2(model2, n,"CR",repli = repli_num) )
+true_bound=true_values(model2,"RAR",TB=100)[2]
+extract2 (experiment2(model2, n,"RAR", target="New", TB=100,repli = repli_num) )
+true_bound=true_values(model2,"RAR",TB=15)[2]
+extract2 (experiment2(model2, n,"RAR", target="New", TB=15,repli = repli_num) )
+true_bound=true_values(model2,"RAR",TB=14)[2]
+extract2 (experiment2(model2, n,"RAR", target="New", TB=14,repli = repli_num) )
+true_bound=true_values(model2,"RAR",TB=13)[2]
+extract2 (experiment2(model2, n,"RAR", target="New", TB=13,repli = repli_num) )
+```
+
+
+## Table 2
+
+```{r}
+true_tau=true_values(model2,"CARA")[1]
+true_bound=true_values(model2,"CARA")[2]
+n=5e2
+repli_num=1e4
+extract (experiment(model2, n,"CR",repli = repli_num) )
+true_bound=true_values(model2,"CARA",TB=100)[2]
+extract (experiment(model2, n,"CARA", target="New", TB=100,repli = repli_num) )
+true_bound=true_values(model2,"CARA",TB=18)[2]
+extract (experiment(model2, n,"CARA", target="New", TB=18,repli = repli_num) )
+true_bound=true_values(model2,"CARA",TB=17)[2]
+extract (experiment(model2, n,"CARA", target="New", TB=17,repli = repli_num) )
+true_bound=true_values(model2,"CARA",TB=16)[2]
+extract (experiment(model2, n,"CARA", target="New", TB=16,repli = repli_num) )
+```
+
+
+
+# Supplementary Material
+
+## Section S2.1 
+
+### Table S1
+```{r}
+
+true_tau=true_values(model1,"RAR")[1]
+true_bound=true_values(model1,"RAR")[2]
+n=500
+extract2 (experiment2(model1, n,"CR"),5 )
+true_bound=true_values(model1,"RAR",TB=1)[2]
+extract2 (experiment2(model1, n,"RAR", target="New", TB=1) ,5)
+true_bound=true_values(model1,"RAR",TB=0.65)[2]
+extract2 (experiment2(model1, n,"RAR", target="New", TB=0.65),5 )
+true_bound=true_values(model1,"RAR",TB=0.6)[2]
+extract2 (experiment2(model1, n,"RAR", target="New", TB=0.6) ,5)
+true_bound=true_values(model1,"RAR",TB=0.55)[2]
+extract2 (experiment2(model1, n,"RAR", target="New", TB=0.55) ,5)
+```
+
+### Table S2
+```{r}
+
+true_tau=true_values(model1,"CARA")[1]
+true_bound=true_values(model1,"CARA")[2]
+n=500
+extract.binary (experiment(model1, n,"CR"),5 )
+true_bound=true_values(model1,"CARA",TB=1)[2]
+extract.binary (experiment(model1, n,"CARA", target="New", TB=1),5 )
+true_bound=true_values(model1,"CARA",TB=0.65)[2]
+extract.binary (experiment(model1, n,"CARA", target="New", TB=0.65),5 )
+true_bound=true_values(model1,"CARA",TB=0.6)[2]
+extract.binary (experiment(model1, n,"CARA", target="New", TB=0.6),5 )
+true_bound=true_values(model1,"CARA",TB=0.55)[2]
+extract.binary (experiment(model1, n,"CARA", target="New", TB=0.55),5 )
+```
+
+
+
+
+
+
+## Section 2.2
+
+### Table S3
+```{r}
+n=500
+repli_num=1e4
+
+true_tau=true_values(model2,"RAR")[1]
+true_bound=true_values(model2,"RAR")[2]
+
+extract2 (experiment2(model2, n,"CR",repli=repli_num) )
+extract2 (experiment2(model2, n,"BCD",repli=repli_num) )
+extract2 (experiment2(model2, n,"RAR", target="Neyman",repli=repli_num, TB=100) )
+extract2 (experiment2(model2, n,"RAR", target="BandBis",repli=repli_num,TB=30) )
+extract2 (experiment2(model2, n,"RAR", target="RSIHR",repli=repli_num,TB=30) )
+
+```
+### Table S4
+```{r}
+n=500
+repli_num=1e4
+
+true_tau=true_values(model2,"CARA")[1]
+true_bound=true_values(model2,"CARA")[2]
+extract (experiment(model2, n,"CR",repli=repli_num) )
+extract (experiment(model2, n,"MIN",repli=repli_num) )
+
+extract (experiment(model2, n,"CARA", target="Neyman",repli=repli_num, TB=100) )
+extract (experiment(model2, n,"CARA", target="BandBis",repli=repli_num,TB=30) )
+extract (experiment(model2, n,"CARA", target="RSIHR",repli=repli_num,TB=30) )
+
+
+extract (experiment(model2, n,"CADBCD", target="Neyman",TB=100,
+                    repli=repli_num, n0=30,gamma=2) )
+extract (experiment(model2, n,"CADBCD", target="BandBis",TB=30,repli=repli_num,
+                    n0=30,gamma=2) )
+extract (experiment(model2, n,"CADBCD", target="RSIHR",TB=30,repli=repli_num, n0=30,gamma=2) )
+
+```
+### Table S5
+```{r}
+n=2e3
+repli_num=1e4
+
+true_tau=true_values(model2,"CARA")[1]
+true_bound=true_values(model2,"CARA")[2]
+extract (experiment(model2, n,"CR",repli=repli_num) ,round_num = 4)
+extract (experiment(model2, n,"MIN",repli=repli_num) ,round_num = 4)
+
+extract (experiment(model2, n,"CARA", target="Neyman",repli=repli_num, TB=100) ,round_num = 4)
+extract (experiment(model2, n,"CARA", target="BandBis",repli=repli_num,TB=30) ,round_num = 4)
+extract (experiment(model2, n,"CARA", target="RSIHR",repli=repli_num,TB=30) ,round_num = 4)
+
+
+
+extract (experiment(model2, n,"CADBCD", target="Neyman",TB=100,
+                    repli=repli_num, n0=30) ,round_num = 4)
+extract (experiment(model2, n,"CADBCD", target="BandBis",TB=30,repli=repli_num,
+                    n0=30) ,round_num = 4)
+extract (experiment(model2, n,"CADBCD", target="RSIHR",TB=30,repli=repli_num, n0=30) ,round_num = 4)
+
+```
+
+
+
+
+
+## Section S2.2
+
+### Figure S1
+
+```{r}
+
+
+repli_num=2e3
+n=500
+
+set.seed(123456)
+true_pi=oracle2(model2(1e7),"New",100)$target_alloc
+df1 <- data.frame(
+  value=c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","RAR",100)))),
+                             true_pi = rep(c(true_pi,true_pi),each=repli_num),
+            probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli_num)
+)
+true_pi=oracle2(model2(1e7),"New",15)$target_alloc
+df2 <- data.frame(
+  value=c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","RAR",15)))),
+                             true_pi = rep(c(true_pi,true_pi),each=repli_num),
+            probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli_num)
+)
+true_pi=oracle2(model2(1e7),"New",14)$target_alloc
+df3 <- data.frame(
+  value=c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","RAR",14)))),
+                             true_pi = rep(c(true_pi,true_pi),each=repli_num),
+            probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli_num)
+)
+true_pi=oracle2(model2(1e7),"New",13)$target_alloc
+df4 <- data.frame(
+  value=c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","RAR",13)))),
+                             true_pi = rep(c(true_pi,true_pi),each=repli_num),
+            probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli_num)
+)
+df_combined <- bind_rows(df1, df2, df3, df4)
+df_combined$dataset <- rep(c("no constraint", "c=15","c=14","c=13"), each = 2*repli_num)
+ggplot(df_combined, aes(x = probability, y = value, fill = probability)) +
+  geom_boxplot(alpha = 0.4)+#,outlier.shape = NA) +  # 设置透明度
+  geom_point(data = df_combined, aes(x=probability, y = true_pi), shape = 17, color = "red", size = 3, show.legend = FALSE) +  # 添加一系列的标记
+  labs(x="")+
+  facet_wrap(.~dataset,ncol=2,nrow=2) +  
+  theme_minimal() +
+  scale_fill_manual(values = c("lightgreen", "skyblue", "darkblue", "black")) +  # Color for randomizations
+  theme(legend.position = "right")
+```
+
+
+### Figure S2
+```{r}
+
+
+
+set.seed(123456)
+repli_num=2e3
+
+true_pi=oracle(model2(1e7),"New",100)$target_alloc_strata
+data1 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",100)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",18)$target_alloc_strata
+data2 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",18)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",17)$target_alloc_strata
+data3 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",17)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",16)$target_alloc_strata
+data4 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",16)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+data_combined <- bind_rows(data1, data2, data3, data4)
+data_combined$dataset <- rep(c("no constraint",paste0("c=",18:16)), each = 6*repli_num)
+
+
+ggplot(data_combined, aes(y = value, x = stratum, fill = probability)) +
+  geom_boxplot(alpha = 0.4)+#, outlier.shape = NA) +  # Transparent boxplot
+  geom_point(data = data_combined, aes(x = stratum, y = true_pi), shape = 17, color = "red", size = 2, show.legend = FALSE) +  # 添加一系列的标记
+  #labs(title = "Covariate Imbalance Comparison by Randomization",
+  #     x = "Covariate Imbalance", y = "") +
+  facet_wrap(.~dataset,ncol=2,nrow=2) +  
+  theme_minimal() +
+  scale_fill_manual(values = c("lightgreen", "skyblue", "darkblue", "black")) +  # Color for randomizations
+  theme(legend.position = "right")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## Section S2.3
+
+### Figure S3
+
+```{r}
+
+n=5e2
+repli_num=1e4
+
+
+df <- data.frame(
+ p_cr=(experiment2(model2, n,"CR",repli = repli_num) )$did,
+
+ p_100=(experiment2(model2, n,"RAR", target="New", TB=100,repli = repli_num) )$did,
+
+ p_15=(experiment2(model2, n,"RAR", target="New", TB=15,repli = repli_num) )$did,
+
+ p_14=(experiment2(model2, n,"RAR", target="New", TB=14,repli = repli_num) )$did,
+
+ p_13=(experiment2(model2, n,"RAR", target="New", TB=13,repli = repli_num) )$did
+)
+colnames(df) <- c("CR", "No Constraint", "c=15", "c=14",
+                  "c=13")
+df_long <- df %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+df_long$Variable <- factor(df_long$Variable,
+                           levels = c("CR", "No Constraint", "c=15", "c=14","c=13"))
+
+boxplot <- ggplot(df_long, aes(x = Variable, y = Value)) +
+  geom_boxplot()+#alpha = 0.4, outlier.shape = NA) +
+  theme_minimal() +
+  labs(title = "", x = "Randomization", y = "Estimate")
+
+# 展示箱线图
+print(boxplot)
+```
+
+### Figure S4
+```{r}
+n=5e2
+repli_num=1e4
+
+df <- data.frame(
+ p_cr=(experiment(model2, n,"CR",repli = repli_num) )$did,
+
+
+ p_100=(experiment(model2, n,"CARA", target="New", TB=100,repli = repli_num) )$did,
+
+ p_18=(experiment(model2, n,"CARA", target="New", TB=18,repli = repli_num) )$did,
+
+ p_17=(experiment(model2, n,"CARA", target="New", TB=17,repli = repli_num) )$did,
+ 
+ p_16=(experiment(model2, n,"CARA", target="New", TB=16,repli = repli_num) )$did
+)
+colnames(df) <- c("CR", "No Constraint", "c=18", "c=17",
+                  "c=16")
+
+df_long <- df %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+df_long$Variable <- factor(df_long$Variable,
+                           levels = c("CR", "No Constraint", "c=18", "c=17","c=16"))
+
+ggplot(df_long, aes(x = Variable, y = Value)) +
+  geom_boxplot()+#alpha = 0.4, outlier.shape = NA) +
+  theme_minimal() +
+  labs(title = "", x = "Randomization", y = "Estimatie")
+
+
+```
+
+### Figure S5
+
+```{r}
+n=5e2
+repli_num=1e4
+
+df <- data.frame(
+ p_cr=(experiment(model2, n,"CR",repli = repli_num) )$did,
+
+
+ p_100=(experiment(model2, n,"CARA", target="New", TB=100,repli = repli_num) )$sdid,
+
+ p_18=(experiment(model2, n,"CARA", target="New", TB=18,repli = repli_num) )$sdid,
+
+ p_17=(experiment(model2, n,"CARA", target="New", TB=17,repli = repli_num) )$sdid,
+ 
+ p_16=(experiment(model2, n,"CARA", target="New", TB=16,repli = repli_num) )$sdid
+)
+colnames(df) <- c("CR", "No Constraint", "c=18", "c=17",
+                  "c=16")
+
+df_long <- df %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+df_long$Variable <- factor(df_long$Variable,
+                           levels = c("CR", "No Constraint", "c=18", "c=17","c=16"))
+
+boxplot <- ggplot(df_long, aes(x = Variable, y = Value)) +
+  geom_boxplot()+#alpha = 0.4, outlier.shape = NA) +
+  theme_minimal() +
+  labs(title = "", x = "Randomization", y = "Estimate")
+
+# 展示箱线图
+print(boxplot)
+```
+
+
+
