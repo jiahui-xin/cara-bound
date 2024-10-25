@@ -4,7 +4,7 @@ Codes used to perform a simulation study in
 >
 > Xin, J. and Ma, W. (2024+) On the achievability of efficiency bounds for covariate-adjusted response-adaptive randomization.
 
-The repository includes the R code, C++ code used to produce the presented results in the manuscript and supplementary material. 
+The repository includes the R and C++ code used to produce the presented results in the manuscript and supplementary material. 
 
 ## File folder description
 
