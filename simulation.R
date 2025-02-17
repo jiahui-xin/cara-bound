@@ -1,3 +1,12 @@
+target_alloc_bayesian<-function(n1,n0,sum1,sum0,N,alpha,beta,B){
+  mu0=1/rgamma(10000, shape=n0+alpha, rate=sum0+beta)
+  mu1=1/rgamma(10000, shape=n1+alpha, rate=sum1+beta)
+  c = (n0+n1)/(2*N*0.8)
+  p1 <- mean(mu1<mu0)
+  ps1 <- p1^c/(p1^c+(1-p1)^c)
+  pp1 <- min(max(ps1,B),1-B)
+  return(pp1)
+}
 true_values<-function(model_func,rand="RAR",target="New", TB=100,n=1e6,seed=12345){
   set.seed(seed)
   model_output=model_func(n)
@@ -24,7 +33,7 @@ true_values<-function(model_func,rand="RAR",target="New", TB=100,n=1e6,seed=1234
       Y0s=Y0[strata==s]
       tau[s]=mean(Y1s)-mean(Y0s)
       alloc_prob[s]=target_alloc(mean(Y1s), sd(Y1s), 
-                              mean(Y0s), sd(Y0s), target, TB)
+                                 mean(Y0s), sd(Y0s), target, TB)
       var1[s]=var(Y1s)
       var0[s]=var(Y0s)
       strata_prob[s]=sum(strata==s)/n
@@ -35,36 +44,63 @@ true_values<-function(model_func,rand="RAR",target="New", TB=100,n=1e6,seed=1234
   return(c(true_tau,true_bound))
 }
 
+compare_alloc<-function(model_output, n=500, n0=10,target="Neyman",TB=30,
+                        repli=1000,gamma=2){
+  Ymat=model_output$Ymat
+  strata=model_output$strata
+  n=nrow(Ymat)
+  ratio_CARA=numeric(max(strata))
+  ratio_CADBCD=numeric(max(strata))
+  pi=numeric(max(strata))
+  An_CARA=CARA(model_output, target = target, TB = TB,n0 = n0,
+            gamma=gamma)
+  An_CADBCD=CADBCD(model_output, gamma = gamma, target = target, 
+                   TB = TB,n0 = max(strata)*n0)
+    for(s in 1:max(strata)){
+      ind=(1:n)[strata==s]
+      Ymat_strata=Ymat[ind,]
+      Y1=Ymat_strata[,2]
+      Y0=Ymat_strata[,1]
+      Y1bar=mean(Y1)
+      Y0bar=mean(Y0)
+      sigma1=sd(Y1)
+      sigma0=sd(Y0)
+      #pi[s]=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
+      ratio_CARA[s]=mean(An_CARA[ind])
+      ratio_CADBCD[s]=mean(An_CADBCD[ind])
+    }
+  return (c(ratio_CARA,ratio_CADBCD) )
+}
 
 burn_in_plot<-function(model_func, n=500, n0=10,target="Neyman",
-                             rand="RAR",TB=30,
-                             repli=1000){
+                       rand="RAR",TB=30,
+                       repli=1000){
   if(rand=="RAR"){
-  true_pi=oracle2(model_func(1e5),target,TB)$target_alloc
-  df <- data.frame(t(replicate(repli,burn_in_test(model_func(n),n0,target,rand,TB)
-  ))
-  )
-  
-  names(df)=c("col1","col2")
-  
-  # 将数据转换为长格式（stacked format）
-  df_long <- data.frame(
-    value = c(df$col1, df$col2),
-    probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli)
-  )
-  
-  result<-ggplot(df_long, aes(x = probability, y = value, fill = probability)) +
-    geom_boxplot(outlier.shape = NA,alpha = 0.5) +  # 设置透明度
-    geom_point(aes(x = "all-sample estimate", y = true_pi), shape = 17, color = "red",
-               size = 4,show.legend = FALSE) +  # 在第一列上标记五角星
-    geom_point(aes(x = "burn-in estimate", y = true_pi), shape = 17, color = "red",
-               size = 4,show.legend = FALSE) +  # 在第二列上标记五角星
-    labs(#title = "Boxplot Comparison of Two Columns with Star Marker at 0.5",
-      x = "",
-      y = "") +
-    coord_cartesian(ylim=c(0,0.75))+
-    theme_minimal() +
-    scale_fill_manual(values = c("lightgreen", "skyblue"))  # 手动设置颜色
+    true_pi=oracle2(model_func(1e5),target,TB)$target_alloc
+    df <- data.frame(t(replicate(repli,burn_in_test(model_func(n),n0,target,rand,TB)
+    ))
+    )
+    
+    names(df)=c("col1","col2")
+    
+    # 将数据转换为长格式（stacked format）
+    df_long <- data.frame(
+      value = c(df$col1, df$col2),
+      probability = rep(c("all-sample estimate", "burn-in estimate"), each = repli)
+    )
+    
+    result<-ggplot(df_long, aes(x = probability, y = value, fill = probability)) +
+      geom_boxplot(outlier.shape = NA,alpha = 0.5) +  # 设置透明度
+      geom_point(aes(x = "all-sample estimate", y = true_pi), shape = 17, color = "red",
+                 size = 4,show.legend = FALSE) +  # 在第一列上标记五角星
+      geom_point(aes(x = "burn-in estimate", y = true_pi), shape = 17, color = "red",
+                 size = 4,show.legend = FALSE) +  # 在第二列上标记五角星
+      labs(#title = "Boxplot Comparison of Two Columns with Star Marker at 0.5",
+        x = "",
+        y = "") +
+      coord_cartesian(ylim=c(0,0.75))+
+      theme_minimal() +
+      scale_fill_manual(values = c("lightgreen", "skyblue"))  # 手动设置颜色
   }
   if(rand=="CARA"){
     true_pi=oracle(model2(1e5),target,TB)$target_alloc_strata
@@ -101,8 +137,8 @@ burn_in_experiment<-function(model_func, n=500, n0=10,target="Neyman",
                              repli=1000,round_number=3){
   result=
     rbind(colMeans(t(replicate(1e3,burn_in_test(model_func(n),n0,target,rand,TB)
-                               ))),
-  apply(t(replicate(1e3,burn_in_test(model_func(n),n0,target,rand,TB) ) ),2,sd))
+    ))),
+    apply(t(replicate(1e3,burn_in_test(model_func(n),n0,target,rand,TB) ) ),2,sd))
   if(rand=="CARA")colnames(result)=c(paste0("pi",1:3),paste0("pihat",1:3))
   if(rand=="RAR")colnames(result)=c("pi","pihat")
   rownames(result)=c("est","sd")
@@ -117,25 +153,25 @@ burn_in_test<-function(model_output,n0=10,target="Neyman",rand="CARA",TB=30){
   pi=numeric(max(strata))
   #An=numeric(n)
   if(rand=="RAR"){
-      An=sample(rep(0:1,n0),2*n0,replace=F)
-      Y1=Ymat[,2]
-      Y0=Ymat[,1]
-      Y1bar=mean(Y1)
-      Y0bar=mean(Y0)
-      sigma1=sd(Y1)
-      sigma0=sd(Y0)
-      pi=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
-      
-      Y1=(Ymat[1:(2*n0),2])[An==1]
-      Y0=(Ymat[1:(2*n0),1])[An==0]
-      Y1bar=mean(Y1)
-      Y0bar=mean(Y0)
-      sigma1=sd(Y1)
-      sigma0=sd(Y0)
-      pi_hat=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
-      return(c(pi,pi_hat))
-    }
+    An=sample(rep(0:1,n0),2*n0,replace=F)
+    Y1=Ymat[,2]
+    Y0=Ymat[,1]
+    Y1bar=mean(Y1)
+    Y0bar=mean(Y0)
+    sigma1=sd(Y1)
+    sigma0=sd(Y0)
+    pi=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
     
+    Y1=(Ymat[1:(2*n0),2])[An==1]
+    Y0=(Ymat[1:(2*n0),1])[An==0]
+    Y1bar=mean(Y1)
+    Y0bar=mean(Y0)
+    sigma1=sd(Y1)
+    sigma0=sd(Y0)
+    pi_hat=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
+    return(c(pi,pi_hat))
+  }
+  
   
   if(rand=="CARA"){
     
@@ -161,36 +197,10 @@ burn_in_test<-function(model_output,n0=10,target="Neyman",rand="CARA",TB=30){
     }
     
   }
-  if(rand=="CADBCD"){
-    pi_hat=numeric(max(strata))
-    pi=numeric(max(strata))
-    An=sample(rep(0:1,n0),2*n0,replace=F)
-    for(s in 1:max(strata)){
-      ind=(1:n)[strata==s]
-      Ymat_strata=Ymat[ind,]
-      Y1=Ymat_strata[,2]
-      Y0=Ymat_strata[,1]
-      Y1bar=mean(Y1)
-      Y0bar=mean(Y0)
-      sigma1=sd(Y1)
-      sigma0=sd(Y0)
-      pi[s]=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
-      
-      
-      Y1=(Ymat[1:(2*n0),2])[An==1&strata[1:(2*n0)]==s]
-      Y0=(Ymat[1:(2*n0),1])[An==0&strata[1:(2*n0)]==s]
-      Y1bar=mean(Y1)
-      Y0bar=mean(Y0)
-      sigma1=sd(Y1)
-      sigma0=sd(Y0)
-      pi_hat[s]=target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB)
-    }
-  }
-  
   
   return (c(pi,pi_hat))
-  }
-    
+}
+
 
 
 BCD<-function(n,lambda=0.75){
@@ -257,7 +267,7 @@ CADBCD_R<-function(model_output,  gamma = 2, n0 = 30, target="Neyman", TB = 30){
 }
 
 CARA_R<-function(model_output,  gamma = 2, n0 = 10, 
-               target = "Neyman", TB = 1){
+                 target = "Neyman", TB = 1){
   Ymat=model_output$Ymat
   strata=model_output$strata
   n=nrow(Ymat)
@@ -365,13 +375,13 @@ oracle2<-function(model_output, target, TB=1){
   sigma0=sd(Ymat[,1])
   sigma1=sd(Ymat[,2])
   target_alloc_val=target_alloc(
-      Y1bar, sigma1, Y0bar, sigma0, target, TB)
+    Y1bar, sigma1, Y0bar, sigma0, target, TB)
   return(list(tau=tau, Y0bar=Y0bar, Y1bar=Y1bar, sigma0=sigma0, sigma1=sigma1,
               target_alloc=target_alloc_val))
 }
 
 repli_func<-function(model_func, n=500, rand="CARA", target="Neyman", 
-                      TB=1, n0=10, gamma=2){
+                     TB=1, n0=10, gamma=2){
   model_output=model_func(n)
   Ymat=model_output$Ymat
   #if(target=="New")oracle_val=oracle(model_output, "New",TB)
@@ -425,25 +435,25 @@ repli_func2<-function(model_func, n=500, rand="RAR",
 
 
 
- 
+
 experiment<-function(model_func=model2, n=500, randomise="CARA",
                      target="New", TB=1, 
                      n0=10,  gamma =2, repli=1e4,seed=12345){
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
-    results <- mclapply(
-      1:repli, 
-      function(x) {
-        repli_func(model_func, n, randomise, target, TB,n0,gamma)
-      },
-      mc.cores = 8,
-      mc.set.seed = TRUE)
-    final_result <- as.data.frame(do.call(rbind, results))
-    return(final_result)
+  results <- mclapply(
+    1:repli, 
+    function(x) {
+      repli_func(model_func, n, randomise, target, TB,n0,gamma)
+    },
+    mc.cores = 8,
+    mc.set.seed = TRUE)
+  final_result <- as.data.frame(do.call(rbind, results))
+  return(final_result)
 }
 
 experiment2<-function(model_func=model2, n=500, randomise="CARA", target="New", TB=1, 
-                     n0=10, gamma=2, repli=1e4, seed=123){
+                      n0=10, gamma=2, repli=1e4, seed=123){
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
   results <- mclapply(
@@ -458,8 +468,8 @@ experiment2<-function(model_func=model2, n=500, randomise="CARA", target="New", 
 }
 
 experiment_rng<-function(model_func=model2, n=500, randomise="CARA",
-                     target="New", TB=1, 
-                     n0=10,  gamma =2, repli=3e3){
+                         target="New", TB=1, 
+                         n0=10,  gamma =2, repli=3e3){
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
   results <- mclapply(
@@ -474,7 +484,7 @@ experiment_rng<-function(model_func=model2, n=500, randomise="CARA",
 }
 
 experiment2_rng<-function(model_func=model2, n=500, randomise="CARA", target="New", TB=1, 
-                      n0=10, gamma=2, repli=1e3, seed=123){
+                          n0=10, gamma=2, repli=1e3, seed=123){
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
   results <- mclapply(
