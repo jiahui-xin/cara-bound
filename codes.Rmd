@@ -1,7 +1,9 @@
 ---
 title: "codes"
-output: html_document
-date: "2024-10-17"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+date: "2025-1-29"
 ---
 # dependency
 ```{r}
@@ -117,7 +119,7 @@ extract2 (experiment2(model2, n,"BCD",repli=repli_num) )
 extract2 (experiment2(model2, n,"RAR", target="Neyman",repli=repli_num, TB=100) )
 extract2 (experiment2(model2, n,"RAR", target="BandBis",repli=repli_num,TB=30) )
 extract2 (experiment2(model2, n,"RAR", target="RSIHR",repli=repli_num,TB=30) )
-
+extract2 (experiment2(model2, n,"RAR", target="Bayesian",repli=repli_num,n0=100, TB=30) )
 ```
 ### Table S4
 ```{r}
@@ -132,14 +134,14 @@ extract (experiment(model2, n,"MIN",repli=repli_num) )
 extract (experiment(model2, n,"CARA", target="Neyman",repli=repli_num, TB=100) )
 extract (experiment(model2, n,"CARA", target="BandBis",repli=repli_num,TB=30) )
 extract (experiment(model2, n,"CARA", target="RSIHR",repli=repli_num,TB=30) )
-
+extract (experiment(model2, n,"CARA", target="Bayesian",repli=repli_num,n0=33,TB=30) )
 
 extract (experiment(model2, n,"CADBCD", target="Neyman",TB=100,
                     repli=repli_num, n0=30,gamma=2) )
 extract (experiment(model2, n,"CADBCD", target="BandBis",TB=30,repli=repli_num,
                     n0=30,gamma=2) )
 extract (experiment(model2, n,"CADBCD", target="RSIHR",TB=30,repli=repli_num, n0=30,gamma=2) )
-
+extract (experiment(model2, n,"CADBCD", target="Bayesian",TB=30,n0=100,repli=repli_num,gamma=2) )
 ```
 ### Table S5
 ```{r}
@@ -154,7 +156,7 @@ extract (experiment(model2, n,"MIN",repli=repli_num) ,round_num = 4)
 extract (experiment(model2, n,"CARA", target="Neyman",repli=repli_num, TB=100) ,round_num = 4)
 extract (experiment(model2, n,"CARA", target="BandBis",repli=repli_num,TB=30) ,round_num = 4)
 extract (experiment(model2, n,"CARA", target="RSIHR",repli=repli_num,TB=30) ,round_num = 4)
-
+extract (experiment(model2, n,"CARA", target="Bayesian",repli=repli_num,n0=133,TB=30) ,round_num = 4)
 
 
 extract (experiment(model2, n,"CADBCD", target="Neyman",TB=100,
@@ -162,21 +164,74 @@ extract (experiment(model2, n,"CADBCD", target="Neyman",TB=100,
 extract (experiment(model2, n,"CADBCD", target="BandBis",TB=30,repli=repli_num,
                     n0=30) ,round_num = 4)
 extract (experiment(model2, n,"CADBCD", target="RSIHR",TB=30,repli=repli_num, n0=30) ,round_num = 4)
-
+extract (experiment(model2, n,"CADBCD",target="Bayesian",TB=30,n0=400,repli=repli_num,gamma=2),round_num = 4)
 ```
 
-
-
-
-
-## Section S2.2
+## Section S2.3
 
 ### Figure S1
 
 ```{r}
 
 
-repli_num=2e3
+
+set.seed(123456)
+repli_num=1e3
+
+true_pi=oracle(model2(1e7),"New",100)$target_alloc_strata
+data1 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  ratio = rep(c("SDBCD", "CADBCD"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,compare_alloc(model2(500),n0=10,target="New",TB=100)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",18)$target_alloc_strata
+data2 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  ratio = rep(c("SDBCD", "CADBCD"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,compare_alloc(model2(500),n0=10,target="New",TB=18)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",17)$target_alloc_strata
+data3 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  ratio = rep(c("SDBCD", "CADBCD"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,compare_alloc(model2(500),n0=10,target="New",TB=17)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+true_pi=oracle(model2(1e7),"New",16)$target_alloc_strata
+data4 <- data.frame(
+  stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
+  ratio = rep(c("SDBCD", "CADBCD"), each = 3*repli_num),
+  value = c(t(replicate(repli_num,compare_alloc(model2(500),n0=10,target="New",TB=16)))),
+  true_pi = rep(c(true_pi,true_pi),each=repli_num)
+)
+data_combined <- bind_rows(data1, data2, data3, data4)
+data_combined$dataset <- rep(c("no constraint",paste0("c=",18:16)), each = 6*repli_num)
+
+
+ggplot(data_combined, aes(y = value, x = stratum, fill = ratio)) +
+  geom_boxplot(alpha = 0.4)+#, outlier.shape = NA) +  # Transparent boxplot
+  geom_point(data = data_combined, aes(x = stratum, y = true_pi), shape = 17, color = "red", size = 2, show.legend = FALSE) +  # 添加一系列的标记
+  #labs(title = "Covariate Imbalance Comparison by Randomization",
+  #     x = "Covariate Imbalance", y = "") +
+  facet_wrap(.~dataset,ncol=2,nrow=2) +  
+  theme_minimal() +
+  scale_fill_manual(values = c("lightgreen", "skyblue", "darkblue", "black")) +  # Color for randomizations
+  theme(legend.position = "right")
+
+```
+
+
+
+## Section S2.4
+
+### Figure S2
+
+```{r}
+
+
+repli_num=1e3
 n=500
 
 set.seed(123456)
@@ -217,40 +272,40 @@ ggplot(df_combined, aes(x = probability, y = value, fill = probability)) +
 ```
 
 
-### Figure S2
+### Figure S3
 ```{r}
 
 
 
 set.seed(123456)
-repli_num=2e3
+repli_num=1e3
 
 true_pi=oracle(model2(1e7),"New",100)$target_alloc_strata
 data1 <- data.frame(
   stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
   probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
-  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",100)))),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","CARA",100)))),
   true_pi = rep(c(true_pi,true_pi),each=repli_num)
 )
 true_pi=oracle(model2(1e7),"New",18)$target_alloc_strata
 data2 <- data.frame(
   stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
   probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
-  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",18)))),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","CARA",18)))),
   true_pi = rep(c(true_pi,true_pi),each=repli_num)
 )
 true_pi=oracle(model2(1e7),"New",17)$target_alloc_strata
 data3 <- data.frame(
   stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
   probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
-  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",17)))),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","CARA",17)))),
   true_pi = rep(c(true_pi,true_pi),each=repli_num)
 )
 true_pi=oracle(model2(1e7),"New",16)$target_alloc_strata
 data4 <- data.frame(
   stratum = rep(paste0("stratum",c(1:3,1:3)), each = repli_num),
   probability = rep(c("all-sample estimate", "burn-in estimate"), each = 3*repli_num),
-  value = c(t(replicate(repli_num,burn_in_test(model2(500),30,"New","CARA",16)))),
+  value = c(t(replicate(repli_num,burn_in_test(model2(500),10,"New","CARA",16)))),
   true_pi = rep(c(true_pi,true_pi),each=repli_num)
 )
 data_combined <- bind_rows(data1, data2, data3, data4)
@@ -279,9 +334,9 @@ ggplot(data_combined, aes(y = value, x = stratum, fill = probability)) +
 
 
 
-## Section S2.3
+## Section S2.5
 
-### Figure S3
+### Figure S4
 
 ```{r}
 
@@ -317,10 +372,10 @@ boxplot <- ggplot(df_long, aes(x = Variable, y = Value)) +
 print(boxplot)
 ```
 
-### Figure S4
+### Figure S5(a)
 ```{r}
 n=5e2
-repli_num=1e4
+repli_num=1e3
 
 df <- data.frame(
  p_cr=(experiment(model2, n,"CR",repli = repli_num) )$did,
@@ -351,7 +406,7 @@ ggplot(df_long, aes(x = Variable, y = Value)) +
 
 ```
 
-### Figure S5
+### Figure S5(b)
 
 ```{r}
 n=5e2
