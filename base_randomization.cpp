@@ -12,6 +12,14 @@ using namespace std;
 using namespace arma; 
 
 
+// [[Rcpp::export]]
+double call_bayesian(double n1, double n0, double sum1, double sum0,
+                     int N, double alpha=1, double beta=1,
+                     double B=0.1) {
+  Function target_alloc_bayesian("target_alloc_bayesian");  // Load the R function
+  return as<double>(target_alloc_bayesian(n1, n0, sum1, sum0, N, alpha, beta, B));
+}
+
 //[[Rcpp::export]]
 double assigFun_g(double x, double y, double gamma = 2){
   if(x < 0.000001 && x > -0.000001){
@@ -98,7 +106,7 @@ arma::vec DBCD(arma::mat Ymat, double gamma = 2, int n0 = 10,
   int n = Ymat.n_rows; 
   arma::vec Tvec(n); Tvec.fill(arma::datum::nan); 
   Tvec.subvec(0, 2 * n0 - 1) = n0Rand(n0); 
-  
+  double rhohat=0;
   for(int i = 2 * n0; i < n; i++){
     
     arma::vec Tvec_t = Tvec.subvec(0, i - 1); 
@@ -113,13 +121,22 @@ arma::vec DBCD(arma::mat Ymat, double gamma = 2, int n0 = 10,
     arma::vec Y1 = Ymat.col(1).rows(0, i - 1), 
       Y0 = Ymat.col(0).rows(0, i - 1); 
     
-    double Y1bar = mean(Y1(ind1)), 
-      Y0bar = mean(Y0(ind0)); 
-    
-    double sigma1 = arma::stddev(Y1(ind1)),
-      sigma0 = arma::stddev(Y0(ind0));
-    double rhohat = target_alloc(Y1bar, sigma1, 
-                                 Y0bar, sigma0, target, TB);
+    if(target=="Bayesian"){
+      if((i-2*n0)%10==0){
+        double sum1=sum(Y1(ind1)), sum0 = sum(Y0(ind0));
+        rhohat=call_bayesian(ind1.n_elem,ind0.n_elem,
+                             sum1,sum0,n);
+      }
+      else ;
+    }else{
+      double Y1bar = mean(Y1(ind1)), 
+        Y0bar = mean(Y0(ind0)); 
+      
+      double sigma1 = arma::stddev(Y1(ind1)),
+        sigma0 = arma::stddev(Y0(ind0));
+      rhohat = target_alloc(Y1bar, sigma1, 
+                            Y0bar, sigma0, target, TB);
+    }
     
     double g = assigFun_g(x, rhohat, gamma); 
     
@@ -172,6 +189,9 @@ arma::vec CADBCD(List model_output, double gamma = 2, int n0 = 30,
   for (int i = 2 * n0; i < n; ++i) {
     double rho = 0.0;
     
+    if(target=="Bayesian"){
+      if((i-2*n0)%10!=0) continue;
+    }
     for (int s = 1; s <= max(strata); ++s) {
       arma::uvec pre_seq = arma::regspace<uvec>(0, i - 1);
       arma::uvec ind = find(strata(pre_seq) == s);
@@ -180,24 +200,32 @@ arma::vec CADBCD(List model_output, double gamma = 2, int n0 = 30,
       
       arma::vec Y1 = Ymat.col(1);
       arma::vec Y0 = Ymat.col(0);
-      double Y1bar = 0;
-      double Y0bar = 0;
-      
-      double sigma1 = 0;
-      double sigma0 = 0;
-      if(ind1.n_elem==0 || ind0.n_elem==0){
-        ;
+      if(target=="Bayesian"){
+        double sum1=sum(Y1(ind1)), sum0 = sum(Y0(ind0));
+        pi[s-1]=call_bayesian(ind1.n_elem,ind0.n_elem,
+                              sum1,sum0,n);
       }else{
-        Y1bar = mean(Y1(ind1));
-        Y0bar = mean(Y0(ind0));
+        double Y1bar = 0;
+        double Y0bar = 0;
         
-        sigma1 = arma::stddev(Y1(ind1));
-        sigma0 = arma::stddev(Y0(ind0));
+        double sigma1 = 0;
+        double sigma0 = 0;
+        if(ind1.n_elem==0 || ind0.n_elem==0){
+          ;
+        }else{
+          Y1bar = mean(Y1(ind1));
+          Y0bar = mean(Y0(ind0));
+          
+          sigma1 = arma::stddev(Y1(ind1));
+          sigma0 = arma::stddev(Y0(ind0));
+          
+          
+          // Call the target_alloc function (you need to define it properly)
+          pi[s - 1] = target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB);
+        }
+        
       }
       
-      
-      // Call the target_alloc function (you need to define it properly)
-      pi[s - 1] = target_alloc(Y1bar, sigma1, Y0bar, sigma0, target, TB);
       
       rho = rho + ind.n_elem*1.0/i * pi[s - 1];
       //printf("%f\n\n",sum(strata(pre_seq) == s)/i);
@@ -211,11 +239,11 @@ arma::vec CADBCD(List model_output, double gamma = 2, int n0 = 30,
       (pi[j] * pow( (rho / N1 * (i - 1)), gamma) +
         (1 - pi[j]) * pow( (1 - rho) / (1 - N1*1.0 / (i - 1)), gamma));
     
- //printf("%f\n%f\n\n",pi[j],prob);
-  prob = std::min(std::max(prob, 0.1), 0.9);  // Ensure prob is between 0.1 and 0.9
-  
-  arma::vec Temp = arma::randu<arma::vec>(1); 
-  An(i) = sum(Temp > 1 - prob);
+    //printf("%f\n%f\n\n",pi[j],prob);
+    prob = std::min(std::max(prob, 0.1), 0.9);  // Ensure prob is between 0.1 and 0.9
+    
+    arma::vec Temp = arma::randu<arma::vec>(1); 
+    An(i) = sum(Temp > 1 - prob);
   }
   
   return An;
